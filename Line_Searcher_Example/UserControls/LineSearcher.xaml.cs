@@ -38,7 +38,7 @@ namespace Line_Searcher_Example.UserControls
         private RotateTransform m_LineRotateTransform;
         private double m_Radian;
 
-        private ObservableCollection<EdgeDetctor> m_EdgeDetectCollection;
+        private EdgeCollection m_EdgeDetectCollection;
         #endregion
 
         #region Properties
@@ -62,7 +62,7 @@ namespace Line_Searcher_Example.UserControls
         {
             get { return m_EdgeDetectCollection; }
         }
-
+        
         #endregion
 
         #region Dependency Properties
@@ -259,7 +259,7 @@ namespace Line_Searcher_Example.UserControls
         {
             InitializeComponent();
             DataContext = this;
-            m_EdgeDetectCollection = new ObservableCollection<EdgeDetctor>();
+            m_EdgeDetectCollection = new EdgeCollection();
         }
 
         #region Methods
@@ -449,6 +449,25 @@ namespace Line_Searcher_Example.UserControls
         #endregion
 
 
+    }
+
+    public class EdgeCollection : ObservableCollection<EdgeDetctor>
+    {
+        private CvsLineDetect m_LineDetect;
+        
+        public Point DetectLine(System.Drawing.Bitmap originImage)
+        {
+            List<Point> inputEdges = new List<Point>();
+            foreach(var item in this)
+            {
+                inputEdges.Add(item.Detect(originImage));
+            }
+            if (m_LineDetect == null) m_LineDetect = new CvsLineDetect(inputEdges);
+            else m_LineDetect.InputPoints = inputEdges;
+            m_LineDetect.CalcCoefficient();
+
+            return m_LineDetect.Coefficient;
+        }
     }
 
     public class EdgeDetctor
