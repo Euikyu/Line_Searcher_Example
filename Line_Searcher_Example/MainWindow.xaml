@@ -19,6 +19,17 @@
         <StackPanel Margin="20" Grid.Column="1">
             <Button Content="ADD" Margin="10" Click="Button_Click" VerticalAlignment="Top"/>
             <Button Content="SUBTRACT" Margin="10" Background="Bisque" Click="Button_Click_1" VerticalAlignment="Top"/>
+            <TextBlock Text="Projection Length" Margin="10,10,10,5"/>
+            <TextBox Text="{Binding ElementName=Main_LineSearcher, Path=ProjectionLength, UpdateSourceTrigger=PropertyChanged}" Margin="10, 0, 10, 10"/>
+            <TextBlock Text="Search Length" Margin="10,10,10,5"/>
+            <TextBox Text="{Binding ElementName=Main_LineSearcher, Path=SearchLength, UpdateSourceTrigger=PropertyChanged}" Margin="10, 0, 10, 10"/>
+            <UniformGrid Columns="2" Rows="2" Margin="5,10">
+                <TextBlock Text="Half Pixel" Margin="5"/>
+                <TextBox Text="{Binding ElementName=Main_LineSearcher, Path=HalfPixelCount, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5"/>
+                <TextBlock Text="Contrast&#10;Threshold" Margin="5"/>
+                <TextBox Text="{Binding ElementName=Main_LineSearcher, Path=ContrastThreshold, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5"/>
+            </UniformGrid>
+
         </StackPanel>
     </Grid>
 </Window>

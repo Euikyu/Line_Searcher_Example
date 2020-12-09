@@ -21,6 +21,7 @@ namespace Line_Searcher_Example
     /// </summary>
     public partial class MainWindow : Window
     {
+
         public MainWindow()
         {
             InitializeComponent();
