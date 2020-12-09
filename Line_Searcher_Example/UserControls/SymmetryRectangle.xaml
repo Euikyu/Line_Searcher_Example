@@ -1,0 +1,50 @@
+﻿<UserControl x:Class="Line_Searcher_Example.UserControls.SymmetryRectangle"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Line_Searcher_Example.UserControls"
+             mc:Ignorable="d" Name="uc"
+             d:DesignHeight="200" d:DesignWidth="200"
+             MinWidth="20" MinHeight="20" Loaded="SymmetryRectangle_Loaded">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="Rect_Stroke_Color" Color="#FF3A88C7"/>
+        <Style x:Key="Polygon_Visibility_Style" TargetType="Polygon">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsGrouped}" Value="True">
+                    <Setter Property="Polygon.Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsGrouped}" Value="False">
+                    <Setter Property="Polygon.Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Rectangle_Visibility_Style" TargetType="Rectangle">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsGrouped}" Value="True">
+                    <Setter Property="Rectangle.Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsGrouped}" Value="False">
+                    <Setter Property="Rectangle.Visibility" Value="Visible"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+    <ContentControl DataContext="{Binding ElementName=uc}"
+                    Width="{Binding Width}" Height="{Binding Height}" SizeChanged="ContentControl_SizeChanged">
+        <Grid>
+            <Grid Name="Movable_Grid" Background="#11FFFFFF" Margin="8" MouseEnter="Rectangle_MouseEnter" MouseLeave="Rectangle_MouseLeave" MouseDown="Rectangle_MouseDown" MouseUp="Rectangle_MouseUp" MouseMove="Retangle_MouseMove"/>
+            <Rectangle Name="Size_W" Margin="4" HorizontalAlignment="Left" Stroke="{StaticResource Rect_Stroke_Color}" StrokeThickness="6"/>
+            <Rectangle Name="Size_E" Margin="4" HorizontalAlignment="Right" Stroke="{StaticResource Rect_Stroke_Color}" StrokeThickness="6"/>
+            <Rectangle Name="Size_N" Margin="4" VerticalAlignment="Top" Stroke="{StaticResource Rect_Stroke_Color}" StrokeThickness="6"/>
+            <Rectangle Name="Size_S" Margin="4" VerticalAlignment="Bottom" Stroke="{StaticResource Rect_Stroke_Color}" StrokeThickness="6"/>
+            <Polygon Style="{StaticResource Polygon_Visibility_Style}" HorizontalAlignment="Center" VerticalAlignment="Top" Width="25" Height="15" Points="1,1 1,4 12,7.5 1,11 1,14 23,7.5" Fill="{StaticResource Rect_Stroke_Color}" Stroke="DarkBlue" StrokeThickness="1"/>
+            <Polygon HorizontalAlignment="Left" VerticalAlignment="Center" Width="15" Height="25" Points="1,1 14,1 7.5,24" Fill="{StaticResource Rect_Stroke_Color}" Stroke="DarkBlue" StrokeThickness="1"/>
+            <Rectangle Name="Size_NW" Style="{StaticResource Rectangle_Visibility_Style}" HorizontalAlignment="Left" VerticalAlignment="Top" Width="15" Height="15" Stroke="{StaticResource Rect_Stroke_Color}" StrokeThickness="2" Fill="Red" MouseEnter="Rectangle_MouseEnter" MouseLeave="Rectangle_MouseLeave" MouseDown="Rectangle_MouseDown" MouseUp="Rectangle_MouseUp" MouseMove="Retangle_MouseMove"/>
+            <Rectangle Name="Size_NE" Style="{StaticResource Rectangle_Visibility_Style}" HorizontalAlignment="Right" VerticalAlignment="Top" Width="15" Height="15" Stroke="{StaticResource Rect_Stroke_Color}" StrokeThickness="2" Fill="Red" MouseEnter="Rectangle_MouseEnter" MouseLeave="Rectangle_MouseLeave" MouseDown="Rectangle_MouseDown" MouseUp="Rectangle_MouseUp" MouseMove="Retangle_MouseMove"/>
+            <Rectangle Name="Size_SW" Style="{StaticResource Rectangle_Visibility_Style}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="15" Height="15" Stroke="{StaticResource Rect_Stroke_Color}" StrokeThickness="2" Fill="Red" MouseEnter="Rectangle_MouseEnter" MouseLeave="Rectangle_MouseLeave" MouseDown="Rectangle_MouseDown" MouseUp="Rectangle_MouseUp" MouseMove="Retangle_MouseMove"/>
+            <Rectangle Name="Size_SE" Style="{StaticResource Rectangle_Visibility_Style}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="15" Height="15" Stroke="{StaticResource Rect_Stroke_Color}" StrokeThickness="2" Fill="Red" MouseEnter="Rectangle_MouseEnter" MouseLeave="Rectangle_MouseLeave" MouseDown="Rectangle_MouseDown" MouseUp="Rectangle_MouseUp" MouseMove="Retangle_MouseMove" />
+        </Grid>
+    </ContentControl>
+</UserControl>
+
