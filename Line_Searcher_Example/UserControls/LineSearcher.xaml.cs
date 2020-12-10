@@ -457,6 +457,7 @@ namespace Line_Searcher_Example.UserControls
         
         public Point DetectLine(System.Drawing.Bitmap originImage)
         {
+            if (this.Count == 0) return new Point(double.NaN, double.NaN);
             List<Point> inputEdges = new List<Point>();
             foreach(var item in this)
             {
