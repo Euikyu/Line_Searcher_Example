@@ -11,7 +11,7 @@
         <SolidColorBrush x:Key="Rect_Stroke_Color" Color="#FF3A88C7"/>
     </UserControl.Resources>
     <ContentControl DataContext="{Binding ElementName=uc}"
-        Width="{Binding Width}">
+        Width="{Binding Width}" SizeChanged="ContentControl_SizeChanged">
         <Grid RenderTransform="{Binding LineRotateTransform}">
             <Grid Name="Rotate_Grid" DataContext="{Binding ElementName=uc, Path=DataContext}">
                 <ItemsControl ItemsSource="{Binding EdgeDetectCollection}">

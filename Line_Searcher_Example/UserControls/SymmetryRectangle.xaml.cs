@@ -58,7 +58,9 @@ namespace Line_Searcher_Example.UserControls
         public static readonly DependencyProperty IsGroupedProperty =
             DependencyProperty.Register("IsGrouped", typeof(bool), typeof(SymmetryRectangle));
 
-
+        /// <summary>
+        /// 이 도형의 원점 X좌표를 가져오거나 설정합니다.
+        /// </summary>
         public double OriginX
         {
             get { return (double)GetValue(OriginXProperty); }
@@ -68,12 +70,18 @@ namespace Line_Searcher_Example.UserControls
             }
         }
 
+        /// <summary>
+        /// 이 도형의 원점 Y좌표를 가져오거나 설정합니다.
+        /// </summary>
         public double OriginY
         {
             get { return (double)GetValue(OriginYProperty); }
             set { SetValue(OriginYProperty, value); }
         }
 
+        /// <summary>
+        /// 이 도형이 여러개의 그룹으로 묶이는 지 아니면 단독으로 쓰이는 지 여부를 가져오거나 설정합니다.
+        /// </summary>
         public bool IsGrouped
         {
             get { return (bool)GetValue(IsGroupedProperty); }
@@ -90,6 +98,9 @@ namespace Line_Searcher_Example.UserControls
         }
 
         #region Methods
+        /// <summary>
+        /// 이 도형을 업데이트합니다.
+        /// </summary>
         private void UpdateRect()
         {
             m_RectWidth = this.Width;
@@ -107,7 +118,9 @@ namespace Line_Searcher_Example.UserControls
 
         private void Rectangle_MouseLeave(object sender, MouseEventArgs e)
         {
+            //그룹으로 묶여있는 것이면 Mouse 동작 스킵
             if (IsGrouped) return;
+            //커서 원래대로 돌리기
             var control = sender as FrameworkElement;
             if (control != null)
             {
@@ -117,7 +130,9 @@ namespace Line_Searcher_Example.UserControls
 
         private void Rectangle_MouseEnter(object sender, MouseEventArgs e)
         {
+            //그룹으로 묶여있는 것이면 Mouse 동작 스킵
             if (IsGrouped) return;
+            //위치에 맞는 커서로 변경
             var control = sender as FrameworkElement;
             if (control != null)
             {
@@ -137,6 +152,7 @@ namespace Line_Searcher_Example.UserControls
         }
         private void Rectangle_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            //그룹으로 묶여있는 것이면 Mouse 동작 스킵
             if (IsGrouped) return;
             var element = sender as IInputElement;
             Canvas canvas = this.Parent as Canvas;
@@ -154,6 +170,7 @@ namespace Line_Searcher_Example.UserControls
 
         private void Rectangle_MouseUp(object sender, MouseButtonEventArgs e)
         {
+            //그룹으로 묶여있는 것이면 Mouse 동작 스킵
             if (IsGrouped) return;
             lock (m_MoveLock)
             {
@@ -168,6 +185,7 @@ namespace Line_Searcher_Example.UserControls
         }
         private void Retangle_MouseMove(object sender, MouseEventArgs e)
         {
+            //그룹으로 묶여있는 것이면 Mouse 동작 스킵
             if (IsGrouped) return;
             if (m_IsCaptured)
             {
@@ -182,6 +200,8 @@ namespace Line_Searcher_Example.UserControls
                         Vector sizeOffset = e.GetPosition(canvas) - m_LastSizePoint;
                         switch (control.Name)
                         {
+                            // W, H 둘 중 하나만 변화되어도 밑에 있는 원점 변경 이벤트 호출됨
+                            //왼쪽 상단을 이동시키면 - 변화량 으로 W, H 증감
                             case "Size_NW":
                                 if (m_RectWidth - 2 * sizeOffset.X > this.MinWidth) this.Width = m_RectWidth - 2 * sizeOffset.X;
                                 else this.Width = this.MinWidth;
@@ -189,6 +209,7 @@ namespace Line_Searcher_Example.UserControls
                                 else this.Height = this.MinHeight;
                                 break;
 
+                            //오른쪽 상단을 이동시키면 + 변화량으로 W 증감, - 변화량 으로 H 증감
                             case "Size_NE":
                                 if (m_RectWidth + 2 * sizeOffset.X > this.MinWidth) this.Width = m_RectWidth + 2 * sizeOffset.X;
                                 else this.Width = this.MinWidth;
@@ -196,6 +217,7 @@ namespace Line_Searcher_Example.UserControls
                                 else this.Height = this.MinHeight;
                                 break;
 
+                            //왼쪽 하단을 이동시키면 + 변화량으로 H 증감, - 변화량 으로 W 증감
                             case "Size_SW":
                                 if (m_RectWidth - 2 * sizeOffset.X > this.MinWidth) this.Width = m_RectWidth - 2 * sizeOffset.X;
                                 else this.Width = this.MinWidth;
@@ -203,6 +225,7 @@ namespace Line_Searcher_Example.UserControls
                                 else this.Height = this.MinHeight;
                                 break;
 
+                            //오른쪽 하단을 이동시키면 + 변화량 으로 W, H 증감
                             case "Size_SE":
                                 if (m_RectWidth + 2 * sizeOffset.X > this.MinWidth) this.Width = m_RectWidth + 2 * sizeOffset.X;
                                 else this.Width = this.MinWidth;
@@ -210,6 +233,7 @@ namespace Line_Searcher_Example.UserControls
                                 else this.Height = this.MinHeight;
                                 break;
 
+                            // 이동 변화량으로 원점 증감
                             case "Movable_Grid":
                                 Vector moveOffset = e.GetPosition(canvas) - m_LastMovePoint;
                                 this.OriginX += moveOffset.X;
@@ -222,12 +246,14 @@ namespace Line_Searcher_Example.UserControls
             }
         }
 
+        //내,외부에서 Width, Height 변경할 시 동작
         private void ContentControl_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             if (m_RectWidth != 0 && m_RectHeight != 0)
             {
                 this.OriginX = m_RectOriginX + (m_RectWidth - this.Width) / 2;
                 this.OriginY = m_RectOriginY + (m_RectHeight - this.Height) / 2;
+                this.UpdateRect();
             }
         }
 
