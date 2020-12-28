@@ -4,32 +4,39 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 
 namespace Line_Searcher_Example.Inspect
 {
 
     public class CvsLineDetect
     {
-        private Random m_Rand;                       // jykim : Random()를 내부에서 선언하면 똑같은 난수값이 나옴..
+        private Random m_Rand = new Random();                    // jykim : Random()를 내부에서 선언하면 똑같은 난수값이 나옴..
+        private TwoPoints m_SelectedPoints;                       // 란삭으로 선택된 두 점
+        private List<RANSAC_Model> m_RANSAC_Models;             // 란삭 모델들
+
         // 프로퍼티들..
         public List<Point> InputPoints { get; set; }                        // 받은 모든 점들
         public Point Coefficient { get; private set; }                       // 란삭으로 선택된 두 점으로 구한 직선의 방정식의 a, b 값
         public double ConsensusThresholdDistance { get; set; } // Consensus로 인정되는 기준 거리
-
-        public TwoPoints SelectedPoints { get; private set; }                       // 란삭으로 선택된 두 점
-        public List<RANSAC_Model> RANSAC_Models { get; private set; }  // 란삭 모델들
-
+        public DrawingImage Overlay { get; private set; }
+        public double OverlayWidth { get; set; }
+        public double OverlayHeight { get; set; }
         // 함수들..
 
         // 생성자
-        public CvsLineDetect(List<Point> InputPoints)
+        public CvsLineDetect(List<Point> InputPoints, double imageWidth, double imageHeight)
         {
-
             this.InputPoints = InputPoints;
-
             // 6 : 6픽셀
             this.ConsensusThresholdDistance = 6;
 
+            this.OverlayWidth = imageWidth;
+            this.OverlayHeight = imageHeight;
+        }
+
+        public void Run()
+        {
             // 모델들 구하기
             CalcModels();
 
@@ -38,16 +45,19 @@ namespace Line_Searcher_Example.Inspect
 
             // Coefficient 구하기
             CalcCoefficient();
+
+            DrawingImage di = new DrawingImage(this.CreateGeometry());
+            di.Freeze();
+            Overlay = di;
         }
 
         // 모델 구하기
-        public void CalcModels()
+        private void CalcModels()
         {
             try
             {
                 // 난수 발생 용
-                m_Rand = new Random();
-                RANSAC_Models = new List<RANSAC_Model>();
+                m_RANSAC_Models = new List<RANSAC_Model>();
 
                 for (int i = 0; i < 12; i++)
                 {
@@ -58,7 +68,7 @@ namespace Line_Searcher_Example.Inspect
                     CalcConsensusPoints(Model, this.ConsensusThresholdDistance);
 
                     // RANSAC_Models에 Add.
-                    this.RANSAC_Models.Add(Model);
+                    this.m_RANSAC_Models.Add(Model);
                 }
             }
             catch (Exception)
@@ -68,7 +78,7 @@ namespace Line_Searcher_Example.Inspect
         }
 
         // 랜덤으로 점 두개 뽑기
-        TwoPoints SelectTwoPoint(List<Point> InputPoints)
+        private TwoPoints SelectTwoPoint(List<Point> InputPoints)
         {
             try
             {
@@ -88,13 +98,11 @@ namespace Line_Searcher_Example.Inspect
                 // 겹치지 않는 난수 구해
                 //Random Rand = new Random();
 
-                while (true)
+                do
                 {
                     Rand_num1 = m_Rand.Next(Start, End);
                     Rand_num2 = m_Rand.Next(Start, End);
-                    if (Rand_num1 != Rand_num2)
-                        break;
-                }
+                } while (Rand_num1 == Rand_num2 && InputPoints.Count > 2);
 
                 // 난수를 인덱스로 사용해서 pt1, pt2 구해
                 Result.pt1 = InputPoints[Rand_num1];
@@ -110,7 +118,7 @@ namespace Line_Searcher_Example.Inspect
         }
 
         // 기울기 구하기
-        public Double CalcSlope(TwoPoints TwoPoints)
+        private Double CalcSlope(TwoPoints TwoPoints)
         {
             try
             {
@@ -136,7 +144,7 @@ namespace Line_Searcher_Example.Inspect
         }
 
         // 지지 점들 구하기
-        public void CalcConsensusPoints(RANSAC_Model Model, Double ConsensusThreshold)
+        private void CalcConsensusPoints(RANSAC_Model Model, Double ConsensusThreshold)
         {
             try
             {
@@ -188,13 +196,13 @@ namespace Line_Searcher_Example.Inspect
         }
 
         // Coefficient구하기
-        public void CalcCoefficient()
+        private void CalcCoefficient()
         {
             try
             {
                 // 최대 컨센서스를 갖는 모델은?
                 RANSAC_Model Model = new RANSAC_Model();
-                foreach (var model in this.RANSAC_Models)
+                foreach (var model in this.m_RANSAC_Models)
                 {
                     if (Model.ConsensusPoints.Count < model.ConsensusPoints.Count)
                     {
@@ -227,13 +235,13 @@ namespace Line_Searcher_Example.Inspect
             }
         }
 
-        public void CalcSelectedPoints()
+        private void CalcSelectedPoints()
         {
             try
             {
                 // 최대 컨센서스를 갖는 모델은?
                 RANSAC_Model Model = new RANSAC_Model();
-                foreach (var model in this.RANSAC_Models)
+                foreach (var model in this.m_RANSAC_Models)
                 {
                     if (Model.ConsensusPoints.Count < model.ConsensusPoints.Count)
                     {
@@ -241,7 +249,7 @@ namespace Line_Searcher_Example.Inspect
                     }
                 }
 
-                this.SelectedPoints = Model.SelectedPoints;
+                this.m_SelectedPoints = Model.SelectedPoints;
 
             }
             catch (Exception)
@@ -250,16 +258,39 @@ namespace Line_Searcher_Example.Inspect
             }
         }
 
+        private GeometryDrawing CreateGeometry()
+        {
+            GeometryDrawing gd = new GeometryDrawing();
+            GeometryGroup group = new GeometryGroup();
+            
+            group.Children.Add(new RectangleGeometry(new Rect(0, 0, OverlayWidth, OverlayHeight)));
+            
+            foreach (var point in InputPoints)
+            {
+                group.Children.Add(new LineGeometry(new Point(point.X - 5, point.Y + 5), new Point(point.X + 5, point.Y - 5)));
+                group.Children.Add(new LineGeometry(new Point(point.X - 5, point.Y - 5), new Point(point.X + 5, point.Y + 5)));
+            }
+            var firstX = InputPoints.First().X;
+            var lastX = InputPoints.Last().X;
+            group.Children.Add(new LineGeometry(new Point(firstX, firstX * Coefficient.X + Coefficient.Y), new Point(lastX, lastX * Coefficient.X + Coefficient.Y)));
+            
+            gd.Geometry = group;
+            gd.Brush = Brushes.Transparent;
+            gd.Pen = new Pen(Brushes.Green, 1);
+            gd.Freeze();
+            return gd;
+        }
+
 
         // 두 점을 갖는 클래스
-        public class TwoPoints
+        class TwoPoints
         {
             public Point pt1 { get; set; }
             public Point pt2 { get; set; }
         }
 
         // 란삭 모델
-        public class RANSAC_Model
+        class RANSAC_Model
         {
             // 프로퍼티들..
 
@@ -278,7 +309,7 @@ namespace Line_Searcher_Example.Inspect
                 SelectedPoints = new TwoPoints();
                 ConsensusPoints = new List<Point>();
             }
-
         }
     }
+
 }

@@ -310,34 +310,29 @@ namespace Line_Searcher_Example.UserControls
         /// </summary>
         private void UpdateCaliper()
         {
+            if (CaliperCount < 3) return;
+
             m_LineWidth = this.Width;
             m_LineOriginX = this.OriginX;
             m_LineOriginY = this.OriginY;
-            
+
             var caliperCenter = this.Width / CaliperCount;
 
             //캘리퍼마다 Origin  재설정 (후에 바인딩 등을 통해서 자동으로 할 수 있으면 그렇게 하도록 교체 예정)
             for (int i = 0; i < m_EdgeDetectCollection.Count; i++)
             {
+                if (LineRotateTransform == null) LineRotateTransform = new RotateTransform(m_Radian, 0, m_LineThickness / 2);
+                var newCaliperCenter = this.GetPointByRotation(new Point((i + 0.5) * caliperCenter - LineRotateTransform.CenterX, 0), Radian, new Point()) - new Point(-(this.OriginX + LineRotateTransform.CenterX), -(this.OriginY + LineRotateTransform.CenterY));
                 var edge = new EdgeDetctor(new CvsRectangleAffine
                 {
-                    LeftTopX = (int)((i + 1) * caliperCenter - ProjectionLength / 2),
-                    LeftTopY = (int)(SearchLength / 2),
+                    LeftTopX = (int)(newCaliperCenter.X - this.ProjectionLength / 2),
+                    LeftTopY = (int)(newCaliperCenter.Y - SearchLength / 2),
                     Width = (int)ProjectionLength,
                     Height = (int)SearchLength,
                     Angle = (int)Rotation
                 }, ContrastThreshold, HalfPixelCount, EdgeDirection);
                 m_EdgeDetectCollection[i] = edge;
             }
-        }
-
-        /// <summary>
-        /// 현재 선 도형의 중심 좌표를 가져옵니다.
-        /// </summary>
-        /// <returns></returns>
-        private Point GetCenter()
-        {
-            return new Point(this.OriginX + this.Width / 2, this.OriginY + this.Height / 2);
         }
 
         /// <summary>
@@ -555,19 +550,25 @@ namespace Line_Searcher_Example.UserControls
     {
         private CvsLineDetect m_LineDetect;
         
-        public Point DetectLine(System.Drawing.Bitmap originImage)
+        public DrawingImage DetectLine(System.Drawing.Bitmap originImage)
         {
-            if (this.Count == 0) return new Point(double.NaN, double.NaN);
+            if (this.Count == 0) return null;
             List<Point> inputEdges = new List<Point>();
             foreach(var item in this)
             {
-                inputEdges.Add(item.Detect(originImage));
+                var point = item.Detect(originImage);
+                if(!double.IsNaN(point.X)) inputEdges.Add(point);
             }
-            if (m_LineDetect == null) m_LineDetect = new CvsLineDetect(inputEdges);
-            else m_LineDetect.InputPoints = inputEdges;
-            m_LineDetect.CalcCoefficient();
-
-            return m_LineDetect.Coefficient;
+            if (m_LineDetect == null) m_LineDetect = new CvsLineDetect(inputEdges, originImage.Width, originImage.Height);
+            else
+            {
+                m_LineDetect.InputPoints = inputEdges;
+                m_LineDetect.OverlayWidth = originImage.Width;
+                m_LineDetect.OverlayHeight = originImage.Height;
+            }
+            m_LineDetect.Run();
+            
+            return m_LineDetect.Overlay;
         }
     }
 
@@ -605,10 +606,12 @@ namespace Line_Searcher_Example.UserControls
         /// <returns></returns>
         public Point Detect(System.Drawing.Bitmap originImage)
         {
+            //m_Rect.GetCropImage(originImage).Save(@"D:\" + DateTime.Now.ToString("HHmmss_ffff") + ".bmp");
             m_Detect.DetectImage = m_Rect.GetCropImage(originImage);
             m_Detect.Detect();
 
-            return m_Detect.Edge;
+            if(m_Detect.Edge == null) return new Point(double.NaN, double.NaN);
+            else return CvsRectangleAffine.PoseMatrix((float)m_Detect.Edge.X, (float)m_Detect.Edge.Y, m_Rect.LeftTopX, m_Rect.LeftTopY, m_Rect.Angle, m_Rect.Width, m_Rect.Height);
         }
     }
 }

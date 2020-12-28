@@ -12,9 +12,13 @@
             <ColumnDefinition Width="607*"/>
             <ColumnDefinition Width="180"/>
         </Grid.ColumnDefinitions>
-        <Canvas Name="canvas">
-            <u:LineSearcher x:Name="Main_LineSearcher" Width="200" Canvas.Top="{Binding OriginY}" Canvas.Left="{Binding OriginX}"/>
-        </Canvas>
+        <ScrollViewer x:Name="scrollViewer" CanContentScroll="True" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Visible">
+            <Canvas Name="canvas" Width="{Binding ImageWidth}" Height="{Binding ImageHeight}" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Image Name="Origin_Image" Canvas.Left="0" Canvas.Top="0" Source="{Binding OriginImageSource}"/>
+                <Image Name="Overlay_Image" Canvas.Left="0" Canvas.Top="0" Source="{Binding OverlayImageSource}"  Width="{Binding ImageWidth}" Height="{Binding ImageHeight}"/>
+                <u:LineSearcher x:Name="Main_LineSearcher" Width="200" Canvas.Top="{Binding OriginY}" Canvas.Left="{Binding OriginX}"/>
+            </Canvas>
+        </ScrollViewer>
 
         <Grid Grid.Column="1" Background="White">
             <StackPanel Margin="20">
@@ -31,6 +35,8 @@
                     <TextBox Text="{Binding ElementName=Main_LineSearcher, Path=ContrastThreshold, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5"/>
                 </UniformGrid>
 
+                <Button Content="Image Open" Margin="10" Click="ImageOpen_Click" VerticalAlignment="Top"/>
+                <Button Content="Run" Margin="10" Click="Run_Click" VerticalAlignment="Top"/>
             </StackPanel>
         </Grid>
     </Grid>

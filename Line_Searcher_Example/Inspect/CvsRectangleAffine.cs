@@ -5,6 +5,8 @@ using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using Point = System.Windows.Point;
 
 namespace Line_Searcher_Example.Inspect
 {
@@ -19,20 +21,13 @@ namespace Line_Searcher_Example.Inspect
 
         }
 
-        // float Point 정의
-        public struct FPoint
-        {
-            public float x;
-            public float y;
-        }
-
         // 사각형 정보
         public int LeftTopX { get; set; } // 회전하지 않은 사각형의 LeftTop x 좌표
         public int LeftTopY { get; set; } // 회전하지 않은 사각형의 LeftTop y 좌표
         public int Width { get; set; }
         public int Height { get; set; }
         public int Angle { get; set; } // 돌린 각
-
+        
 
         // Bitmap Crop
         public System.Drawing.Bitmap GetCropImage(System.Drawing.Bitmap BitmapSrc)
@@ -96,9 +91,9 @@ namespace Line_Searcher_Example.Inspect
                     for (int i = 0; i < Width; i++)
                     {
                         // Pose Matrix (회전 후 이동)
-                        FPoint point = PoseMatrix(i, j, LeftTopX, LeftTopY, Angle, Width, Height);
-                        int srcx = (int)point.x;
-                        int srcy = (int)point.y;
+                        Point point = PoseMatrix(i, j, LeftTopX, LeftTopY, Angle, Width, Height);
+                        int srcx = (int)point.X;
+                        int srcy = (int)point.Y;
 
                         // srcx와 srcy가 소스 밖의 점이면 0으로 넣자
                         if (srcx >= 0 && srcx <= BitmapSrc.Width && srcy >= 0 && srcy <= BitmapSrc.Height)
@@ -173,9 +168,9 @@ namespace Line_Searcher_Example.Inspect
                     for (int i = 0; i < Width; i++)
                     {
                         // Pose Matrix (회전 후 이동)
-                        FPoint point = PoseMatrix(i, j, LeftTopX, LeftTopY, Angle, Width, Height);
-                        int srcx = (int)point.x;
-                        int srcy = (int)point.y;
+                        Point point = PoseMatrix(i, j, LeftTopX, LeftTopY, Angle, Width, Height);
+                        int srcx = (int)point.X;
+                        int srcy = (int)point.Y;
 
                         // srcx와 srcy가 소스 밖의 점이면 0으로 넣자
                         if (srcx >= 0 && srcx <= BitmapSrc.Width && srcy >= 0 && srcy <= BitmapSrc.Height)
@@ -241,7 +236,7 @@ namespace Line_Searcher_Example.Inspect
         }
 
         // 회전 And 이동 매트릭스 테스트
-        static FPoint PoseMatrix(float Model_x, float Model_y, float LeftTopX, float LeftTopY, float Degree, int width, int height)
+        public static Point PoseMatrix(float Model_x, float Model_y, float LeftTopX, float LeftTopY, float Degree, int width, int height)
         {
             try
             {
@@ -272,13 +267,13 @@ namespace Line_Searcher_Example.Inspect
                 float[] Result = new float[3 * 1];
                 PosePoint.GetArray(0, 0, Result);
 
-                FPoint fpoint = new FPoint
+                Point point = new Point
                 {
-                    x = Result[0], // x좌표
-                    y = Result[1] // y좌표
+                    X = Result[0], // x좌표
+                    Y = Result[1] // y좌표
                 };
 
-                return fpoint;
+                return point;
             }
             catch (Exception)
             {

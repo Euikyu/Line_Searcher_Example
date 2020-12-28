@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -26,6 +27,8 @@ namespace Line_Searcher_Example.Inspect
         private byte[] m_DetectRawImage;
         private int m_Width;
         private int m_Height;
+
+        private List<CvsEdge> m_EdgeList;
         #endregion
 
         #region Properties
@@ -100,12 +103,14 @@ namespace Line_Searcher_Example.Inspect
         {
             get; set;
         }
-        /// <summary>
-        /// 검사 후 찾은 에지 좌표.
-        /// </summary>
-        public Point Edge
+        
+        public CvsEdge Edge
         {
-            get; private set;
+            get
+            {
+                if (m_EdgeList != null && m_EdgeList.Count > 0) return m_EdgeList.First();
+                else return null;
+            }
         }
         #endregion
 
@@ -115,6 +120,7 @@ namespace Line_Searcher_Example.Inspect
             EdgeDirection = EDirection.Any;
             ContrastThreshold = 5;
             HalfPixelCount = 2;
+            m_EdgeList = new List<CvsEdge>();
         }
 
         #region Methods
@@ -171,25 +177,21 @@ namespace Line_Searcher_Example.Inspect
         /// </summary>
         public void Detect()
         {
+            //에지 넓이 = 최고점 높이 * 같은 부호 길이 / 2
+
             //이전 서브픽셀 값
             float lastValue = 0;
-
+            //에지의 최대 대비값
+            float lastMaxValue = 0;
+            
             //현재 서브픽셀 변화량의 합
             float currentSum_dx = 0;
             //현재 (서브픽셀 변화량 * 현재 픽셀 위치) 의 합
             float currentSum_y_mul_dx = 0;
-
-            // 하프픽셀 필터에 걸치는 서브픽셀 변화량의 함
-            float tmpSum_dx = 0;
-            // 하프픽셀 필터에 걸치는 (서브픽셀 변화량 * 현재 픽셀 위치)의 함
-            float tmpSum_y_mul_dx = 0;
-
-            //에지 값이 여러개일 수도 있으니 리스트로 일단 선언
-            List<float> edgeList = new List<float>();
-
-            //하프픽셀 필터로 걸치는 변화량 개수
-            uint inverseCount = 0;
-
+            
+            //에지후보 list 초기화
+            m_EdgeList.Clear();
+            
             //서브픽셀 배열 개수
             int count = SubPixelArray.Length;
 
@@ -202,39 +204,17 @@ namespace Line_Searcher_Example.Inspect
                     //기존값과 부호가 반대라면
                     if (lastValue < 0)
                     {
-                        //반대인 채로 허용 하프픽셀 개수를 넘어섰다면?
-                        if (inverseCount > HalfPixelCount)
-                        {
-                            //현재합으로 에지 계산 -> 0일 경우 에지 추가 안함
-                            if (this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx) is float res) edgeList.Add(res);
-
-                            //임시로 쌓았던 것은 현재로 변경 및 하프픽셀 개수 초기화 
-                            currentSum_dx = tmpSum_dx;
-                            currentSum_y_mul_dx = tmpSum_y_mul_dx;
-                            tmpSum_dx = 0;
-                            tmpSum_y_mul_dx = 0;
-                            inverseCount = 0;
-                        }
-                        //넘어서지 않았다면?
-                        else
-                        {
-                            //하프픽셀 걸치는 개수 추가
-                            inverseCount++;
-                            // 대비 임계값을 넘어선 수치라면 임시 합에 더해줌
-                            if (Math.Abs(m_SubPixelArray[i]) > ContrastThreshold)
-                            {
-                                tmpSum_dx += m_SubPixelArray[i];
-                                tmpSum_y_mul_dx += i * m_SubPixelArray[i];
-                            }
-                            //기존 값 변경 안함
-                            continue;
-                        }
+                        //현재합으로 에지 계산 -> 0일 경우 에지 추가 안함
+                        var res = this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx);
+                        //에지 추가할 때, X, Y, 대비값 추가
+                        if (res != null) m_EdgeList.Add(new CvsEdge(m_Width / 2, (float)res, lastMaxValue));
+                        currentSum_dx = 0;
+                        currentSum_y_mul_dx = 0;
+                        lastMaxValue = 0;
                     }
                     //기존값과 부호가 같다면
                     else
                     {
-                        //하프픽셀 개수 초기화
-                        inverseCount = 0;
                         // 대비 임계값을 넘어선 수치라면 현재 합에 더해줌
                         if (Math.Abs(m_SubPixelArray[i]) > ContrastThreshold)
                         {
@@ -248,29 +228,16 @@ namespace Line_Searcher_Example.Inspect
                 {
                     if (lastValue > 0)
                     {
-                        if (inverseCount > HalfPixelCount)
-                        {
-                            if (this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx) is float res) edgeList.Add(res);
-                            currentSum_dx = tmpSum_dx;
-                            currentSum_y_mul_dx = tmpSum_y_mul_dx;
-                            tmpSum_dx = 0;
-                            tmpSum_y_mul_dx = 0;
-                            inverseCount = 0;
-                        }
-                        else
-                        {
-                            inverseCount++;
-                            if (Math.Abs(m_SubPixelArray[i]) > ContrastThreshold)
-                            {
-                                tmpSum_dx += m_SubPixelArray[i];
-                                tmpSum_y_mul_dx += i * m_SubPixelArray[i];
-                            }
-                            continue;
-                        }
+                        //현재합으로 에지 계산 -> 0일 경우 에지 추가 안함
+                        var res = this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx);
+                        //에지 추가할 때, X, Y, 대비값 추가
+                        if (res != null) m_EdgeList.Add(new CvsEdge(m_Width / 2, (float)res, lastMaxValue));
+                        currentSum_dx = 0;
+                        currentSum_y_mul_dx = 0;
+                        lastMaxValue = 0;
                     }
                     else
                     {
-                        inverseCount = 0;
                         if (Math.Abs(m_SubPixelArray[i]) > ContrastThreshold)
                         {
                             currentSum_dx += m_SubPixelArray[i];
@@ -281,34 +248,197 @@ namespace Line_Searcher_Example.Inspect
                 //변화량이 0이라면?
                 else
                 {
-                    //하프픽셀 걸치는지 확인
-                    if (inverseCount > HalfPixelCount)
-                    {
-                        //현재합으로 에지 계산 -> 0일 경우 에지 추가 안함
-                        if (this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx) is float res) edgeList.Add(res);
-
-                        //임시로 쌓았던 것은 현재로 변경 및 하프픽셀 개수 초기화 
-                        currentSum_dx = tmpSum_dx;
-                        currentSum_y_mul_dx = tmpSum_y_mul_dx;
-                        tmpSum_dx = 0;
-                        tmpSum_y_mul_dx = 0;
-                        inverseCount = 0;
-                    }
-                    else
-                    {
-                        //하프픽셀 개수 추가
-                        inverseCount++;
-                        continue;
-                    }
+                    continue;
                 }
                 //같은 방향(-, +)의 제품이 들어왔다면 기존 값을 바꿔줌
                 lastValue = m_SubPixelArray[i];
+                if (Math.Abs(m_SubPixelArray[i]) > Math.Abs(lastMaxValue)) lastMaxValue = m_SubPixelArray[i];
             }
 
-            //반복문이 끝나고 에지 리스트 중 첫 번째 에지를 결과에지로 뿌려줌
-            //나중에는 에지 스코어링 부분 추가하여 상황에 따라 첫 번째 에지를 찾을지, 대비값이 큰 에지를 찾을지 결정
-            if (edgeList.Count > 0) Edge = new Point(m_Width / 2, edgeList.First());
-            else Edge = new Point(0, 0);
+            //반복문이 끝나고 규칙(현재는 대비값만 존재)에 따라 스코어를 매긴 후 리스트 정렬
+            this.ScoringAndSortEdgeList();
+        }
+        //public void Detect()
+        //{
+        //    이전 서브픽셀 값
+        //    float lastValue = 0;
+        //    에지의 최대 대비값
+        //    float lastMaxValue = 0;
+
+
+        //    현재 서브픽셀 변화량의 합
+        //    float currentSum_dx = 0;
+        //    현재(서브픽셀 변화량 * 현재 픽셀 위치) 의 합
+        //    float currentSum_y_mul_dx = 0;
+
+        //    하프픽셀 필터에 걸치는 서브픽셀 변화량의 함
+        //    float tmpSum_dx = 0;
+        //    하프픽셀 필터에 걸치는(서브픽셀 변화량 * 현재 픽셀 위치)의 함
+        //    float tmpSum_y_mul_dx = 0;
+        //    하프픽셀에 걸치는 해당 영역의 최대 대비 값
+        //    float tmpMaxValue = 0;
+
+        //    에지후보 list 초기화
+        //    m_EdgeList.Clear();
+
+        //    하프픽셀 필터로 걸치는 변화량 개수
+        //    uint inverseCount = 0;
+
+        //    서브픽셀 배열 개수
+        //    int count = SubPixelArray.Length;
+
+        //    서브픽셀 한 바퀴 도는 동안
+        //    for (int i = 0; i < count; i++)
+        //    {
+        //        현재 서브픽셀 값이 양수라면?
+        //        if (m_SubPixelArray[i] > 0)
+        //        {
+        //            기존값과 부호가 반대라면
+        //            if (lastValue < 0)
+        //            {
+        //                반대인 채로 허용 하프픽셀 개수를 넘어섰다면?
+        //                if (inverseCount > HalfPixelCount)
+        //                {
+        //                    현재합으로 에지 계산-> 0일 경우 에지 추가 안함
+        //                   var res = this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx);
+        //                    에지 추가할 때, X, Y, 대비값 추가
+        //                    if (res != null) m_EdgeList.Add(new CvsEdge(m_Width / 2, (float)res, lastMaxValue));
+
+        //                    임시로 쌓았던 것은 현재로 변경 및 하프픽셀 개수 초기화
+        //                    currentSum_dx = tmpSum_dx;
+        //                    currentSum_y_mul_dx = tmpSum_y_mul_dx;
+        //                    lastMaxValue = tmpMaxValue;
+        //                    tmpSum_dx = 0;
+        //                    tmpSum_y_mul_dx = 0;
+        //                    tmpMaxValue = 0;
+        //                    inverseCount = 0;
+        //                }
+        //                넘어서지 않았다면?
+        //                else
+        //                {
+        //                    하프픽셀 걸치는 개수 추가
+        //                    inverseCount++;
+        //                    대비 임계값을 넘어선 수치라면 임시 합에 더해줌
+        //                    if (Math.Abs(m_SubPixelArray[i]) > ContrastThreshold)
+        //                    {
+        //                        tmpSum_dx += m_SubPixelArray[i];
+        //                        tmpSum_y_mul_dx += i * m_SubPixelArray[i];
+        //                        if (Math.Abs(m_SubPixelArray[i]) > Math.Abs(tmpMaxValue)) tmpMaxValue = m_SubPixelArray[i];
+        //                    }
+        //                    기존 값 변경 안함
+        //                    continue;
+        //                }
+        //            }
+        //            기존값과 부호가 같다면
+        //            else
+        //            {
+        //                하프픽셀 개수 초기화
+        //                inverseCount = 0;
+        //                tmpSum_dx = 0;
+        //                tmpSum_y_mul_dx = 0;
+        //                tmpMaxValue = 0;
+        //                대비 임계값을 넘어선 수치라면 현재 합에 더해줌
+        //                if (Math.Abs(m_SubPixelArray[i]) > ContrastThreshold)
+        //                {
+        //                    currentSum_dx += m_SubPixelArray[i];
+        //                    currentSum_y_mul_dx += i * m_SubPixelArray[i];
+        //                    if (Math.Abs(m_SubPixelArray[i]) > Math.Abs(tmpMaxValue)) tmpMaxValue = m_SubPixelArray[i];
+        //                }
+        //            }
+        //        }
+        //        현재 서브픽셀 값이 음수라면? 양수와 반대로 동작함. ->동작원리는 같음
+        //        else if (m_SubPixelArray[i] < 0)
+        //        {
+        //            if (lastValue > 0)
+        //            {
+        //                if (inverseCount > HalfPixelCount)
+        //                {
+        //                    현재합으로 에지 계산-> 0일 경우 에지 추가 안함
+        //                   var res = this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx);
+        //                    에지 추가할 때, X, Y, 대비값 추가
+        //                    if (res != null) m_EdgeList.Add(new CvsEdge(m_Width / 2, (float)res, lastMaxValue));
+        //                    currentSum_dx = tmpSum_dx;
+        //                    currentSum_y_mul_dx = tmpSum_y_mul_dx;
+        //                    lastMaxValue = tmpMaxValue;
+        //                    tmpSum_dx = 0;
+        //                    tmpSum_y_mul_dx = 0;
+        //                    tmpMaxValue = 0;
+        //                    inverseCount = 0;
+        //                }
+        //                else
+        //                {
+        //                    inverseCount++;
+        //                    if (Math.Abs(m_SubPixelArray[i]) > ContrastThreshold)
+        //                    {
+        //                        tmpSum_dx += m_SubPixelArray[i];
+        //                        tmpSum_y_mul_dx += i * m_SubPixelArray[i];
+        //                        if (Math.Abs(m_SubPixelArray[i]) > Math.Abs(tmpMaxValue)) tmpMaxValue = m_SubPixelArray[i];
+        //                    }
+        //                    continue;
+        //                }
+        //            }
+        //            else
+        //            {
+        //                inverseCount = 0;
+        //                tmpSum_dx = 0;
+        //                tmpSum_y_mul_dx = 0;
+        //                tmpMaxValue = 0;
+        //                if (Math.Abs(m_SubPixelArray[i]) > ContrastThreshold)
+        //                {
+        //                    currentSum_dx += m_SubPixelArray[i];
+        //                    currentSum_y_mul_dx += i * m_SubPixelArray[i];
+        //                    if (Math.Abs(m_SubPixelArray[i]) > Math.Abs(tmpMaxValue)) tmpMaxValue = m_SubPixelArray[i];
+        //                }
+        //            }
+        //        }
+        //        변화량이 0이라면 ?
+        //        else
+        //        {
+        //            하프픽셀 걸치는지 확인
+        //            if (inverseCount > HalfPixelCount)
+        //            {
+        //                현재합으로 에지 계산-> 0일 경우 에지 추가 안함
+        //               var res = this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx);
+        //                에지 추가할 때, X, Y, 대비값 추가
+        //                if (res != null) m_EdgeList.Add(new CvsEdge(m_Width / 2, (float)res, currentSum_dx));
+
+        //                임시로 쌓았던 것은 현재로 변경 및 하프픽셀 개수 초기화
+        //                currentSum_dx = tmpSum_dx;
+        //                currentSum_y_mul_dx = tmpSum_y_mul_dx;
+        //                lastMaxValue = tmpMaxValue;
+        //                tmpSum_dx = 0;
+        //                tmpSum_y_mul_dx = 0;
+        //                inverseCount = 0;
+        //                tmpMaxValue = 0;
+        //            }
+        //            else
+        //            {
+        //                하프픽셀 개수 추가
+        //                inverseCount++;
+        //                continue;
+        //            }
+        //        }
+        //        같은 방향(-, +)의 제품이 들어왔다면 기존 값을 바꿔줌
+        //        lastValue = m_SubPixelArray[i];
+        //    if (Math.Abs(m_SubPixelArray[i]) > Math.Abs(lastMaxValue)) lastMaxValue = m_SubPixelArray[i];
+        //}
+
+        //반복문이 끝나고 규칙(현재는 대비값만 존재)에 따라 스코어를 매긴 후 리스트 정렬
+        //this.ScoringAndSortEdgeList();
+        //}
+
+        private void ScoringAndSortEdgeList()
+        {
+            //현재는 대비값 1개로만 스코어링하지만 추후에는 좀 더 기능을 추가할 예정
+            if (true)
+            {
+                m_EdgeList.Sort((i1, i2) => Math.Abs(i2.Contrast).CompareTo(Math.Abs(i1.Contrast)));
+            }
+            //포지션 기준으로 정렬
+            else if (true)
+            {
+                m_EdgeList.Sort((i1, i2) => Math.Abs(i1.Y - m_Height / 2).CompareTo(Math.Abs(i2.Y - m_Height / 2)));
+            }
         }
 
         /// <summary>
@@ -321,7 +451,7 @@ namespace Line_Searcher_Example.Inspect
         {
             //반환값이 null일 경우 에지 추가 안함
             if (sum_dx == 0) return null;
-            var res = sum_y_mul_dx / sum_dx - (float)0.5;
+            var res = sum_y_mul_dx / sum_dx - 0.5F;
             switch (EdgeDirection)
             {
                 case EDirection.DarkToLight:
@@ -336,5 +466,21 @@ namespace Line_Searcher_Example.Inspect
             }
         }
         #endregion
+    }
+
+    public class CvsEdge
+    {
+        #region Properties
+        public float X { get; }
+        public float Y { get; }
+        public float Contrast { get; }
+        #endregion
+
+        public CvsEdge(float x, float y, float contrast)
+        {
+            this.X = x;
+            this.Y = y;
+            this.Contrast = contrast;
+        }
     }
 }
