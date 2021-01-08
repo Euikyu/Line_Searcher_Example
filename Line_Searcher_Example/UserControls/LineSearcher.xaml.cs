@@ -253,7 +253,7 @@ namespace Line_Searcher_Example.UserControls
                 }
                 else
                 {
-                    LineRotateTransform = new RotateTransform(value, m_LineRotateTransform.CenterX, m_LineRotateTransform.CenterY);
+                    LineRotateTransform = new RotateTransform(value, 0, m_LineThickness / 2);
                 }
                 RaisePropertyChanged("LineRotateTransform");
                 SetValue(RotationProperty, value);
@@ -283,7 +283,7 @@ namespace Line_Searcher_Example.UserControls
                 }
                 else
                 {
-                    LineRotateTransform = new RotateTransform(deg, m_LineRotateTransform.CenterX, m_LineRotateTransform.CenterY);
+                    LineRotateTransform = new RotateTransform(deg, 0, m_LineThickness / 2);
                 }
                 RaisePropertyChanged("LineRotateTransform");
                 SetValue(RotationProperty, deg);
