@@ -29,7 +29,7 @@ namespace Line_Searcher_Example.Inspect
         {
             this.InputPoints = InputPoints;
             // 6 : 6픽셀
-            this.ConsensusThresholdDistance = 6;
+            this.ConsensusThresholdDistance = 10;
 
             this.OverlayWidth = imageWidth;
             this.OverlayHeight = imageHeight;
@@ -222,8 +222,8 @@ namespace Line_Searcher_Example.Inspect
                 else
                 {
                     // X = C 직선 (y축과 평행한 직선)
-                    a = -9999;
-                    b = -9999;
+                    a = double.NaN;
+                    b = double.NaN;
                 }
 
                 this.Coefficient = new Point(a, b);
@@ -258,27 +258,70 @@ namespace Line_Searcher_Example.Inspect
             }
         }
 
-        private GeometryDrawing CreateGeometry()
+        private DrawingGroup CreateGeometry()
         {
-            GeometryDrawing gd = new GeometryDrawing();
+            DrawingGroup dg = new DrawingGroup();
+            GeometryDrawing overlay = new GeometryDrawing
+            {
+                Geometry = new RectangleGeometry(new Rect(0, 0, OverlayWidth, OverlayHeight)),
+                Brush = Brushes.Transparent,
+                Pen = new Pen(Brushes.Transparent, 1)
+            };
+            dg.Children.Add(overlay);
+
+            GeometryDrawing graphic = new GeometryDrawing();
             GeometryGroup group = new GeometryGroup();
-            
-            group.Children.Add(new RectangleGeometry(new Rect(0, 0, OverlayWidth, OverlayHeight)));
-            
+
+
+
             foreach (var point in InputPoints)
             {
                 group.Children.Add(new LineGeometry(new Point(point.X - 5, point.Y + 5), new Point(point.X + 5, point.Y - 5)));
                 group.Children.Add(new LineGeometry(new Point(point.X - 5, point.Y - 5), new Point(point.X + 5, point.Y + 5)));
             }
-            var firstX = InputPoints.First().X;
-            var lastX = InputPoints.Last().X;
-            group.Children.Add(new LineGeometry(new Point(firstX, firstX * Coefficient.X + Coefficient.Y), new Point(lastX, lastX * Coefficient.X + Coefficient.Y)));
-            
-            gd.Geometry = group;
-            gd.Brush = Brushes.Transparent;
-            gd.Pen = new Pen(Brushes.Green, 1);
-            gd.Freeze();
-            return gd;
+            //var firstX = InputPoints.First().X;
+            //var lastX = InputPoints.Last().X;
+            //group.Children.Add(new LineGeometry(new Point(firstX, firstX * Coefficient.X + Coefficient.Y), new Point(lastX, lastX * Coefficient.X + Coefficient.Y)));
+
+            Point startPoint = new Point(), endPoint = new Point();
+            if (Coefficient.X == double.NaN)
+            {
+                startPoint = new Point(m_SelectedPoints.pt1.X, 0);
+                endPoint = new Point(m_SelectedPoints.pt1.X, OverlayHeight);
+            }
+            else
+            {
+                if (Coefficient.Y > OverlayHeight || Coefficient.Y < 0)
+                {
+                    startPoint = new Point(OverlayWidth, OverlayWidth * Coefficient.X + Coefficient.Y);
+                }
+                else
+                {
+                    startPoint = new Point(0, Coefficient.Y);
+                }
+                if (Coefficient.X == 0)
+                {
+                    endPoint = new Point(OverlayWidth - startPoint.X, Coefficient.Y);
+                }
+                else if(-Coefficient.Y / Coefficient.X < 0 || -Coefficient.Y / Coefficient.X > OverlayWidth)
+                {
+                    endPoint = new Point((OverlayHeight - Coefficient.Y) / Coefficient.X , OverlayHeight);
+                }
+                else
+                {
+                    endPoint = new Point(-Coefficient.Y / Coefficient.X, 0);
+                }
+            }
+            group.Children.Add(new LineGeometry(startPoint, endPoint));
+
+            graphic.Geometry = group;
+            graphic.Brush = Brushes.Transparent;
+            graphic.Pen = new Pen(Brushes.LawnGreen, 1);
+            graphic.Freeze();
+
+            dg.Children.Add(graphic);
+
+            return dg;
         }
 
 

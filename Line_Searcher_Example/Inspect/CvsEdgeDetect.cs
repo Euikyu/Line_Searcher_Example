@@ -29,6 +29,7 @@ namespace Line_Searcher_Example.Inspect
         private int m_Height;
 
         private List<CvsEdge> m_EdgeList;
+        private uint m_HalfPixelCount;
         #endregion
 
         #region Properties
@@ -83,11 +84,16 @@ namespace Line_Searcher_Example.Inspect
         }
 
         /// <summary>
-        /// 하나의 에지로 인식하기 위해 중간을 생략할 픽셀 개수.
+        /// 에지로 인식할 절반 픽셀 개수.
         /// </summary>
         public uint HalfPixelCount
         {
-            get; set;
+            get { return m_HalfPixelCount; }
+            set
+            {
+                if(value == 0) m_HalfPixelCount = 1;
+                else m_HalfPixelCount = value;
+            }
         }
         /// <summary>
         /// 특정 이상의 변화량을 에지로 판단하기 위한 임계값. 
@@ -103,7 +109,7 @@ namespace Line_Searcher_Example.Inspect
         {
             get; set;
         }
-        
+
         public CvsEdge Edge
         {
             get
@@ -163,13 +169,22 @@ namespace Line_Searcher_Example.Inspect
             for (int i = 0; i < m_Height; i++)
             {
                 //처음 값과 마지막 값은 항상 0
-                if (i == 0 || i == m_Height - 1)
+                if (i < HalfPixelCount  || i >= m_Height - HalfPixelCount)
                 {
                     m_SubPixelArray[i] = 0;
                     continue;
                 }
                 // 내 값을 기준으로 앞 뒤 값의 차를 구하여 변화량 측정
-                m_SubPixelArray[i] = m_ProjectionArray[i - 1] - m_ProjectionArray[i + 1];
+                float preValue = 0;
+                float postValue = 0;
+
+                for (int range = 1; range <= HalfPixelCount; range++)
+                {
+                    preValue += m_ProjectionArray[i - range];
+                    postValue += m_ProjectionArray[i + range];
+                }
+                
+                m_SubPixelArray[i] = (preValue - postValue) / HalfPixelCount;
             }
         }
         /// <summary>
@@ -183,15 +198,15 @@ namespace Line_Searcher_Example.Inspect
             float lastValue = 0;
             //에지의 최대 대비값
             float lastMaxValue = 0;
-            
+
             //현재 서브픽셀 변화량의 합
             float currentSum_dx = 0;
             //현재 (서브픽셀 변화량 * 현재 픽셀 위치) 의 합
             float currentSum_y_mul_dx = 0;
-            
+
             //에지후보 list 초기화
             m_EdgeList.Clear();
-            
+
             //서브픽셀 배열 개수
             int count = SubPixelArray.Length;
 
@@ -204,7 +219,7 @@ namespace Line_Searcher_Example.Inspect
                     //기존값과 부호가 반대라면
                     if (lastValue < 0)
                     {
-                        //현재합으로 에지 계산 -> 0일 경우 에지 추가 안함
+                        //현재합으로 에지 계산 -> null일 경우 에지 추가 안함
                         var res = this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx);
                         //에지 추가할 때, X, Y, 대비값 추가
                         if (res != null) m_EdgeList.Add(new CvsEdge(m_Width / 2, (float)res, lastMaxValue));
@@ -248,9 +263,28 @@ namespace Line_Searcher_Example.Inspect
                 //변화량이 0이라면?
                 else
                 {
-                    continue;
+                    if (lastValue < 0)
+                    {
+                        //현재합으로 에지 계산 -> 0일 경우 에지 추가 안함
+                        var res = this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx);
+                        //에지 추가할 때, X, Y, 대비값 추가
+                        if (res != null) m_EdgeList.Add(new CvsEdge(m_Width / 2, (float)res, lastMaxValue));
+                        currentSum_dx = 0;
+                        currentSum_y_mul_dx = 0;
+                        lastMaxValue = 0;
+                    }
+                    else if (lastValue > 0)
+                    {
+                        //현재합으로 에지 계산 -> 0일 경우 에지 추가 안함
+                        var res = this.CalculateEdgeByEdgeDirection(currentSum_dx, currentSum_y_mul_dx);
+                        //에지 추가할 때, X, Y, 대비값 추가
+                        if (res != null) m_EdgeList.Add(new CvsEdge(m_Width / 2, (float)res, lastMaxValue));
+                        currentSum_dx = 0;
+                        currentSum_y_mul_dx = 0;
+                        lastMaxValue = 0;
+                    }
                 }
-                //같은 방향(-, +)의 제품이 들어왔다면 기존 값을 바꿔줌
+                //다음 제품의 임계값
                 lastValue = m_SubPixelArray[i];
                 if (Math.Abs(m_SubPixelArray[i]) > Math.Abs(lastMaxValue)) lastMaxValue = m_SubPixelArray[i];
             }
@@ -451,7 +485,7 @@ namespace Line_Searcher_Example.Inspect
         {
             //반환값이 null일 경우 에지 추가 안함
             if (sum_dx == 0) return null;
-            var res = sum_y_mul_dx / sum_dx - 0.5F;
+            var res = sum_y_mul_dx / sum_dx;
             switch (EdgeDirection)
             {
                 case EDirection.DarkToLight:
