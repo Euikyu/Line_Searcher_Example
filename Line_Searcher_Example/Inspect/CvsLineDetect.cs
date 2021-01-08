@@ -283,36 +283,28 @@ namespace Line_Searcher_Example.Inspect
             //var lastX = InputPoints.Last().X;
             //group.Children.Add(new LineGeometry(new Point(firstX, firstX * Coefficient.X + Coefficient.Y), new Point(lastX, lastX * Coefficient.X + Coefficient.Y)));
 
-            Point startPoint = new Point(), endPoint = new Point();
+            Point p0 = new Point(), p1 = new Point();
+            //x = c 인 직선
             if (Coefficient.X == double.NaN)
             {
-                startPoint = new Point(m_SelectedPoints.pt1.X, 0);
-                endPoint = new Point(m_SelectedPoints.pt1.X, OverlayHeight);
+                p0 = new Point(m_SelectedPoints.pt1.X, 0);
+                p1 = new Point(m_SelectedPoints.pt1.X, OverlayHeight);
+            }
+            //y = c 인 직선
+            else if(Coefficient.X == 0)
+            {
+                p0 = new Point(0, Coefficient.Y);
+                p1 = new Point(OverlayWidth, Coefficient.Y);
             }
             else
             {
-                if (Coefficient.Y > OverlayHeight || Coefficient.Y < 0)
-                {
-                    startPoint = new Point(OverlayWidth, OverlayWidth * Coefficient.X + Coefficient.Y);
-                }
-                else
-                {
-                    startPoint = new Point(0, Coefficient.Y);
-                }
-                if (Coefficient.X == 0)
-                {
-                    endPoint = new Point(OverlayWidth - startPoint.X, Coefficient.Y);
-                }
-                else if(-Coefficient.Y / Coefficient.X < 0 || -Coefficient.Y / Coefficient.X > OverlayWidth)
-                {
-                    endPoint = new Point((OverlayHeight - Coefficient.Y) / Coefficient.X , OverlayHeight);
-                }
-                else
-                {
-                    endPoint = new Point(-Coefficient.Y / Coefficient.X, 0);
-                }
+                var p0Location = this.GetLinePointLocation();
+                var p1Location = this.GetLinePointLocation(p0Location);
+
+                p0 = this.GetPointFromLocation(p0Location);
+                p1 = this.GetPointFromLocation(p1Location);
             }
-            group.Children.Add(new LineGeometry(startPoint, endPoint));
+            group.Children.Add(new LineGeometry(p0, p1));
 
             graphic.Geometry = group;
             graphic.Brush = Brushes.Transparent;
@@ -323,7 +315,74 @@ namespace Line_Searcher_Example.Inspect
 
             return dg;
         }
-
+        private int GetLinePointLocation(int passLocation = 0)
+        {
+            //x = 0, y = 0 일 경우
+            if (Coefficient.Y == 0 && passLocation != 1)
+            {
+                return 1;
+            }
+            //0 < x < w,  y = 0 일 경우
+            else if (-Coefficient.Y / Coefficient.X > 0 && -Coefficient.Y / Coefficient.X < OverlayWidth && passLocation != 2)
+            {
+                return 2;
+            }
+            //x = w, y = 0 일 경우
+            else if (Coefficient.X * OverlayWidth + Coefficient.Y == 0 && passLocation != 3)
+            {
+                return 3;
+            }
+            //x = w, 0 < y < h 일 경우
+            else if (Coefficient.X * OverlayWidth + Coefficient.Y > 0 && Coefficient.X * OverlayWidth + Coefficient.Y < OverlayHeight && passLocation != 4)
+            {
+                return 4;
+            }
+            //x = w, y = h 일 경우
+            else if (Coefficient.X * OverlayWidth + Coefficient.Y == OverlayHeight && passLocation != 5)
+            {
+                return 5;
+            }
+            //0 < x < w, y = h 일 경우
+            else if ((OverlayHeight - Coefficient.Y) / Coefficient.X > 0 && (OverlayHeight - Coefficient.Y) / Coefficient.X < OverlayWidth && passLocation != 6)
+            {
+                return 6;
+            }
+            //x = 0, y = h 일 경우
+            else if (Coefficient.Y == OverlayHeight && passLocation != 7)
+            {
+                return 7;
+            }
+            //x = 0, 0 < y < h 일 경우
+            else if (Coefficient.Y > 0 && Coefficient.Y < OverlayHeight && passLocation != 8)
+            {
+                return 8;
+            }
+            else throw new Exception("Wrong edge coordinate.");
+        }
+        private Point GetPointFromLocation(int location)
+        {
+            switch (location)
+            {
+                case 1:
+                    return new Point();
+                case 2:
+                    return new Point(-Coefficient.Y / Coefficient.X, 0);
+                case 3:
+                    return new Point(OverlayWidth, 0);
+                case 4:
+                    return new Point(OverlayWidth, OverlayWidth * Coefficient.X + Coefficient.Y);
+                case 5:
+                    return new Point(OverlayWidth, OverlayHeight);
+                case 6:
+                    return new Point((OverlayHeight - Coefficient.Y) / Coefficient.X, OverlayHeight);
+                case 7:
+                    return new Point(0, OverlayHeight);
+                case 8:
+                    return new Point(0, Coefficient.Y);
+                default:
+                    throw new Exception("Invalid location number.");
+            }
+        }
 
         // 두 점을 갖는 클래스
         class TwoPoints
